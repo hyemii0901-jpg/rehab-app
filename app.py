@@ -891,17 +891,17 @@ def recommend_tests(body_parts, vas, pain_types, details, metabolic, goal_types,
         st.error("⚠️ API 키가 설정되지 않았습니다.")
         return [], []
 
-    # 선택된 모든 부위의 검사 합치기
+    # ── 부위별 연관 검사 자동 매핑 ───────────────────────────────────────────
+    # 선택 부위의 기본 검사
     all_tests = []
     covered_parts = set()
     for bp in body_parts:
-        tests = TEST_DB.get(bp, [])
-        for t in tests:
+        for t in TEST_DB.get(bp, []):
             if t["id"] not in covered_parts:
                 all_tests.append((bp, t))
                 covered_parts.add(t["id"])
 
-    # 바디맵 선택 부위 → 연관 DB 키 매핑
+    # 바디맵 → 검사 연동
     bodymap_to_db = {
         "머리/얼굴": "뇌신경-퍼포먼스 (Neuro-Performance)",
         "뒷머리": "뇌신경-퍼포먼스 (Neuro-Performance)",
@@ -927,26 +927,99 @@ def recommend_tests(body_parts, vas, pain_types, details, metabolic, goal_types,
                     all_tests.append((mapped_db, t))
                     covered_parts.add(t["id"])
 
+    # ── 문진 키워드 기반 자동 추가 검사 ─────────────────────────────────────
+    details_lower = details.lower()
+    pain_str = " ".join(pain_types).lower()
+    combined_text = details_lower + " " + pain_str
+
+    # ROM 자동 추가 조건
+    rom_keywords = ["가동범위", "rom", "안올라", "못올려", "굳어", "굳음", "뻣뻣", "오십견",
+                    "스트레칭", "유연", "회전이 안", "움직임이 안", "범위가", "덜 구부러"]
+    rom_part_map = {
+        "경추 (Cervical)": "R1", "견관절 (Shoulder)": "R2",
+        "요추 (Lumbar)": "R3", "슬관절 (Knee)": "R4", "족관절 (Ankle/Foot)": "R5"
+    }
+    if any(k in combined_text for k in rom_keywords):
+        for bp in body_parts:
+            rom_id = rom_part_map.get(bp)
+            if rom_id and rom_id not in covered_parts:
+                for t in TEST_DB.get("ROM (관절가동범위)", []):
+                    if t["id"] == rom_id:
+                        all_tests.append(("ROM (관절가동범위)", t))
+                        covered_parts.add(rom_id)
+
+    # MMT 자동 추가 조건
+    mmt_keywords = ["근력이", "힘이 없", "약해", "근력 저하", "못 들어", "들기 힘", "근력감소",
+                    "위약", "mmt", "근력검사", "근력 측정"]
+    if any(k in combined_text for k in mmt_keywords):
+        mmt_part = "M1" if any(bp in ["경추 (Cervical)","견관절 (Shoulder)","주관절 (Elbow)"] for bp in body_parts) else "M2"
+        for t in TEST_DB.get("MMT (도수근력검사)", []):
+            if t["id"] == mmt_part and t["id"] not in covered_parts:
+                all_tests.append(("MMT (도수근력검사)", t))
+                covered_parts.add(t["id"])
+
+    # 코어 자동 추가 조건
+    core_keywords = ["코어", "복부", "허리 불안정", "코어 약", "플랭크", "복근", "허리 힘"]
+    if any(k in combined_text for k in core_keywords):
+        for t in TEST_DB.get("코어 안정성 (Core Stability)", []):
+            if t["id"] not in covered_parts:
+                all_tests.append(("코어 안정성 (Core Stability)", t))
+                covered_parts.add(t["id"])
+
+    # 기능적 움직임 자동 추가 조건
+    func_keywords = ["스쿼트", "런지", "균형", "밸런스", "기능적", "일상생활", "계단", "앉았다 일어"]
+    if any(k in combined_text for k in func_keywords):
+        for t in TEST_DB.get("기능적 움직임 (Functional Movement)", []):
+            if t["id"] not in covered_parts:
+                all_tests.append(("기능적 움직임 (Functional Movement)", t))
+                covered_parts.add(t["id"])
+
+    # 신경역동학 자동 추가 조건
+    neuro_keywords = ["저림", "방사통", "뻗치는", "전기오는", "신경", "numbness", "tingling"]
+    if any(k in combined_text for k in neuro_keywords):
+        for t in TEST_DB.get("신경역동학 (Neurodynamics)", []):
+            if t["id"] not in covered_parts:
+                all_tests.append(("신경역동학 (Neurodynamics)", t))
+                covered_parts.add(t["id"])
+
+    # 뇌신경-퍼포먼스 자동 추가 조건
+    neuro_perf_keywords = ["어지럼", "어지러", "균형 안", "뇌진탕", "집중", "시야", "전정", "퍼포먼스"]
+    if any(k in combined_text for k in neuro_perf_keywords):
+        for t in TEST_DB.get("뇌신경-퍼포먼스 (Neuro-Performance)", []):
+            if t["id"] not in covered_parts:
+                all_tests.append(("뇌신경-퍼포먼스 (Neuro-Performance)", t))
+                covered_parts.add(t["id"])
+
+    # 흉추 자동 추가 조건
+    thoracic_keywords = ["등 뻐근", "등이 굳", "흉추", "라운드숄더", "굽은등", "자세", "등 통증"]
+    if any(k in combined_text for k in thoracic_keywords):
+        for t in TEST_DB.get("흉추 (Thoracic Spine)", []):
+            if t["id"] not in covered_parts:
+                all_tests.append(("흉추 (Thoracic Spine)", t))
+                covered_parts.add(t["id"])
+
     if not all_tests:
         return [], []
 
     test_summary = "\n".join(f"- {t['id']}: {t['name']} ({t['goal']}) [{bp}]" for bp, t in all_tests)
-    prompt = f"""스포츠의학 전문가. 환자 정보로 가장 관련성 높은 검사 3~6개 ID만 반환.
+    prompt = f"""스포츠의학 전문가. 환자 문진을 분석하여 가장 필요한 검사 4~8개 ID를 선택하세요.
 
-목적: {', '.join(goal_types)} / 부위: {', '.join(body_parts)}
-바디맵 통증 부위: {', '.join(body_map) or '없음'}
-VAS: {vas}/10 / 통증: {', '.join(pain_types) or '미기재'}
-대사질환: {', '.join(metabolic) or '없음'} / 증상: {details}
+부위: {', '.join(body_parts)} / 바디맵: {', '.join(body_map) or '없음'}
+VAS: {vas}/10 / 통증양상: {', '.join(pain_types) or '미기재'}
+대사질환: {', '.join(metabolic) or '없음'}
+증상/병력: {details}
 
-검사목록:
+사용 가능한 검사:
 {test_summary}
+
+중요: 문진 내용에 가동범위 제한이 언급되면 ROM 검사 포함, 근력 문제면 MMT 포함, 저림/방사통이면 신경역동학 포함.
 
 반드시 이 형식으로만:
 RECOMMENDED_IDS: ID1, ID2, ID3"""
     try:
         response = client.messages.create(
             model="claude-haiku-4-5-20251001",
-            max_tokens=150,
+            max_tokens=200,
             messages=[{"role":"user","content":prompt}]
         )
         text = response.content[0].text
@@ -955,8 +1028,8 @@ RECOMMENDED_IDS: ID1, ID2, ID3"""
         if match:
             ids = [x.strip() for x in re.split(r"[,\s]+", match.group(1)) if x.strip()]
             return [i for i in ids if i in all_valid], all_tests
-        found = re.findall(r"\b([A-Z]\d{1,2})\b", text)
-        return [i for i in found if i in all_valid][:6], all_tests
+        found = re.findall(r"\b([A-Z]{1,2}\d{1,2})\b", text)
+        return [i for i in found if i in all_valid][:8], all_tests
     except Exception as e:
         st.error(f"AI 오류: {e}")
         return [], []
@@ -1129,20 +1202,23 @@ with st.sidebar:
 
     st.markdown("---")
     st.markdown("**🎯 검사 목적 (복수 선택)**")
-    goal_types = st.multiselect("목적", ["근골격 재활","다이어트","체형교정","뇌신경 재활","뇌신경-퍼포먼스","코어/기능","ROM 측정","MMT","기타"],
+    goal_types = st.multiselect("목적", ["근골격 재활","다이어트","체형교정","뇌신경 재활","뇌신경-퍼포먼스","기타"],
                                 default=["근골격 재활"], placeholder="선택...", label_visibility="collapsed")
     if not goal_types: goal_types = ["근골격 재활"]
     goal_type = goal_types[0]
+    st.caption("💡 ROM·MMT·코어 검사는 문진 내용에 따라 자동 추가돼요")
 
-    musculo_parts = [k for k in TEST_DB if k not in ["다이어트 / 체력검사","체형교정","뇌신경 (Neurological)","ROM (관절가동범위)","MMT (도수근력검사)","기능적 움직임 (Functional Movement)","코어 안정성 (Core Stability)","신경역동학 (Neurodynamics)","뇌신경-퍼포먼스 (Neuro-Performance)"]]
+    musculo_parts = [k for k in TEST_DB if k not in [
+        "다이어트 / 체력검사","체형교정","뇌신경 (Neurological)",
+        "ROM (관절가동범위)","MMT (도수근력검사)",
+        "기능적 움직임 (Functional Movement)","코어 안정성 (Core Stability)",
+        "신경역동학 (Neurodynamics)","뇌신경-퍼포먼스 (Neuro-Performance)"
+    ]]
     special_map = {
         "다이어트":"다이어트 / 체력검사",
         "체형교정":"체형교정",
         "뇌신경 재활":"뇌신경 (Neurological)",
         "뇌신경-퍼포먼스":"뇌신경-퍼포먼스 (Neuro-Performance)",
-        "코어/기능":"코어 안정성 (Core Stability)",
-        "ROM 측정":"ROM (관절가동범위)",
-        "MMT":"MMT (도수근력검사)",
     }
     auto_parts = [special_map[g] for g in goal_types if g in special_map]
 
