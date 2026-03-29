@@ -1345,7 +1345,8 @@ with tab1:
         else:
             with st.spinner("AI 분석 중... (3~5초)"):
                 ids, all_tests = recommend_tests(body_parts, vas, pain_types, details, metabolic, goal_types, selected_regions)
-                st.session_state["all_tests_lookup"] = {t["id"]: (bp, t) for bp, t in all_tests}
+                # 전체 테스트 lookup 세션에 저장 (부위 무관하게 ID로 검색 가능)
+                st.session_state["all_tests_lookup"] = {t["id"]: t for _, t in all_tests}
             if ids:
                 st.session_state.recommended_ids = ids
                 st.session_state.test_results = {}
@@ -1364,13 +1365,20 @@ with tab2:
     if not st.session_state.recommended_ids:
         st.info("ℹ️ Step 1에서 AI 검사 추천을 먼저 진행해 주세요.")
     else:
-        # 전체 테스트 DB에서 ID로 검색
+        # 세션에 저장된 전체 lookup 사용 (복수 부위 모두 검색 가능)
+        saved_lookup = st.session_state.get("all_tests_lookup", {})
+
+        # fallback: 전체 DB에서 검색
         all_test_lookup = {}
         for bp, tests in TEST_DB.items():
             for t in tests:
                 all_test_lookup[t["id"]] = t
 
-        rec_tests = [all_test_lookup[i] for i in st.session_state.recommended_ids if i in all_test_lookup]
+        # saved_lookup 우선, 없으면 전체 DB fallback
+        def get_test(tid):
+            return saved_lookup.get(tid) or all_test_lookup.get(tid)
+
+        rec_tests = [get_test(i) for i in st.session_state.recommended_ids if get_test(i)]
         st.markdown(f"**추천 검사 {len(rec_tests)}개**")
         if metabolic:
             st.warning(f"⚠️ 검사 전: {', '.join(metabolic)} — 혈압/혈당 확인 후 시행")
@@ -1380,26 +1388,40 @@ with tab2:
             with st.expander(f"🔬 **[{test['id']}] {test['name']}**", expanded=True):
                 col_m, col_r = st.columns([3,1])
                 with col_m:
-                    # 심플하고 빠르게 읽을 수 있는 방식으로 표시
                     raw = test["method"]
-                    # **준비 자세:** 이후 첫 문장만, 검사 순서 번호 추출
-                    prep = re.search(r"\*\*준비 자세:\*\*(.+?)(?:\n|$)", raw)
-                    steps_raw = re.findall(r"(\d+)\.\s+(.+?)(?=\n\d+\.|\n\*\*|$)", raw, re.DOTALL)
-                    positive = re.search(r"\*\*양성 판정:\*\*(.+?)(?:\n|$)", raw)
-                    caution  = re.search(r"\*\*[⚠️임상 의미주의]+[^:]*:\*\*(.+?)(?:\n|$)", raw)
 
-                    st.markdown(f"🎯 **{test['goal']}**")
+                    # 목적
+                    st.markdown(f"🎯 **목적:** {test['goal']}")
+
+                    # 준비 자세 추출
+                    prep = re.search(r"\*\*준비 자세:\*\*(.+?)(?:\n\n|\n\*\*|$)", raw, re.DOTALL)
                     if prep:
-                        st.caption(f"📍 준비: {prep.group(1).strip()}")
+                        prep_text = prep.group(1).strip().replace("\n", " ")
+                        st.markdown(f"📍 **준비:** {prep_text}")
+
+                    # 검사 순서 추출 → 이모지로 가독성 향상
+                    steps_raw = re.findall(r"(\d+)\.\s+(.+?)(?=\n\d+\.|\n\*\*|\Z)", raw, re.DOTALL)
                     if steps_raw:
-                        steps_text = " → ".join([f"**{n}.** {s.strip()[:40]}" for n,s in steps_raw[:4]])
-                        st.markdown(steps_text)
+                        step_emojis = ["1️⃣","2️⃣","3️⃣","4️⃣","5️⃣","6️⃣"]
+                        steps_md = "\n".join(
+                            f"{step_emojis[int(n)-1] if int(n)<=6 else f'{n}.'} {s.strip().replace(chr(10),' ')}"
+                            for n, s in steps_raw
+                        )
+                        st.markdown(steps_md)
+
+                    # 양성 판정
+                    positive = re.search(r"\*\*양성 판정:\*\*(.+?)(?:\n\*\*|\Z)", raw, re.DOTALL)
                     if positive:
-                        st.markdown(f'<span style="background:#fee2e2;color:#b91c1c;border-radius:6px;padding:2px 8px;font-size:0.8rem">✅ 양성: {positive.group(1).strip()[:60]}</span>', unsafe_allow_html=True)
-                    # 상세 보기 토글
-                    with st.expander("📖 상세 방법 보기"):
-                        st.markdown(raw)
-                        st.markdown(f"[▶️ 영상]({test['video']})")
+                        pos_text = positive.group(1).strip().replace("\n", " ")
+                        st.markdown(f'<div style="background:#fee2e2;color:#b91c1c;border-radius:8px;padding:6px 12px;margin-top:6px;font-size:0.85rem">✅ <b>양성 판정:</b> {pos_text}</div>', unsafe_allow_html=True)
+
+                    # 임상 의미
+                    clinical = re.search(r"\*\*임상 의미:\*\*(.+?)(?:\n\*\*|\Z)", raw, re.DOTALL)
+                    if clinical:
+                        cl_text = clinical.group(1).strip().replace("\n", " ")
+                        st.markdown(f'<div style="background:#f0f4ff;color:#1d4ed8;border-radius:8px;padding:6px 12px;margin-top:4px;font-size:0.82rem">💡 <b>임상 의미:</b> {cl_text}</div>', unsafe_allow_html=True)
+
+                    st.markdown(f"[▶️ 참고 영상]({test['video']})")
 
                 with col_r:
                     prev = st.session_state.test_results.get(test["id"], "음성(-)")
