@@ -1250,6 +1250,13 @@ with st.sidebar:
     bl, bc = bmi_label(bmi)
     st.markdown(f"**BMI {bmi}** — <span style='color:{bc};font-weight:700'>{bl}</span>", unsafe_allow_html=True)
 
+    # BMI 항상 표시 (다이어트 여부 무관)
+    if bmi >= 25:
+        low_w, high_w = normal_weight_range(height)
+        diff = round(weight - high_w, 1)
+        if diff > 0:
+            st.caption(f"🎯 목표 체중: {low_w}~{high_w}kg (감량 -{diff}kg)")
+
     st.markdown("---")
     st.markdown("**💼 직업**")
     occ = st.selectbox("직업", ["사무직","활동직","기타"], label_visibility="collapsed")
@@ -1265,9 +1272,9 @@ with st.sidebar:
                                placeholder="선택...", label_visibility="collapsed")
 
     st.markdown("---")
-    st.markdown("**🎯 검사 목적 (복수 선택)**")
+    st.markdown("**🎯 운동 목적 (복수 선택)**")
     goal_types = st.multiselect("목적", ["근골격 재활","다이어트","체형교정","뇌신경 재활","뇌신경-퍼포먼스","기타"],
-                                default=["근골격 재활"], placeholder="선택...", label_visibility="collapsed")
+                                default=[], placeholder="목적을 선택하세요...", label_visibility="collapsed")
     if not goal_types: goal_types = ["근골격 재활"]
     goal_type = goal_types[0]
     st.caption("💡 ROM·MMT·코어 검사는 문진 내용에 따라 자동 추가돼요")
@@ -1491,24 +1498,39 @@ with tab2:
 
                 with col_r:
                     st.markdown("**결과 입력**")
-                    # Rt / Lt 각각 입력
-                    prev_rt = st.session_state.test_results.get(f"{test['id']}_Rt", "음성(-)")
-                    prev_lt = st.session_state.test_results.get(f"{test['id']}_Lt", "음성(-)")
 
-                    rt = st.radio("우측 (Rt)", ["양성(+)","음성(-)"],
-                                  index=0 if prev_rt=="양성(+)" else 1,
-                                  key=f"rt_{test['id']}", horizontal=True)
-                    lt = st.radio("좌측 (Lt)", ["양성(+)","음성(-)"],
-                                  index=0 if prev_lt=="양성(+)" else 1,
-                                  key=f"lt_{test['id']}", horizontal=True)
+                    # 좌우 구분이 필요한 검사 ID 패턴
+                    bilateral_prefixes = ("C","S","E","W","L","H","K","A","T","N","R","M","CO","F","NP")
+                    no_bilateral_prefixes = ("D","P")  # 다이어트, 체형교정은 좌우 없음
 
-                    results[f"{test['id']}_Rt"] = rt
-                    results[f"{test['id']}_Lt"] = lt
+                    tid = test["id"]
+                    is_bilateral = (
+                        any(tid.startswith(p) for p in bilateral_prefixes) and
+                        not any(tid.startswith(p) for p in no_bilateral_prefixes)
+                    )
 
-                    # 배지 표시
-                    rt_badge = '<span class="pos">Rt 양성</span>' if rt=="양성(+)" else '<span class="neg">Rt 음성</span>'
-                    lt_badge = '<span class="pos">Lt 양성</span>' if lt=="양성(+)" else '<span class="neg">Lt 음성</span>'
-                    st.markdown(f"{rt_badge} {lt_badge}", unsafe_allow_html=True)
+                    if is_bilateral:
+                        prev_rt = st.session_state.test_results.get(f"{tid}_Rt", "음성(-)")
+                        prev_lt = st.session_state.test_results.get(f"{tid}_Lt", "음성(-)")
+                        rt = st.radio("우측 Rt", ["양성(+)","음성(-)"],
+                                      index=0 if prev_rt=="양성(+)" else 1,
+                                      key=f"rt_{tid}", horizontal=True)
+                        lt = st.radio("좌측 Lt", ["양성(+)","음성(-)"],
+                                      index=0 if prev_lt=="양성(+)" else 1,
+                                      key=f"lt_{tid}", horizontal=True)
+                        results[f"{tid}_Rt"] = rt
+                        results[f"{tid}_Lt"] = lt
+                        rt_badge = '<span class="pos">Rt 양성</span>' if rt=="양성(+)" else '<span class="neg">Rt 음성</span>'
+                        lt_badge = '<span class="pos">Lt 양성</span>' if lt=="양성(+)" else '<span class="neg">Lt 음성</span>'
+                        st.markdown(f"{rt_badge} {lt_badge}", unsafe_allow_html=True)
+                    else:
+                        prev = st.session_state.test_results.get(tid, "음성(-)")
+                        result = st.radio("결과", ["양성(+)","음성(-)"],
+                                         index=0 if prev=="양성(+)" else 1,
+                                         key=f"r_{tid}", label_visibility="collapsed")
+                        results[tid] = result
+                        badge = '<span class="pos">양성 (+)</span>' if result=="양성(+)" else '<span class="neg">음성 (-)</span>'
+                        st.markdown(badge, unsafe_allow_html=True)
 
         st.markdown("---")
         if st.button("✅ 결과 저장 후 처방으로 이동", use_container_width=True):
@@ -1537,38 +1559,77 @@ with tab3:
         with c4: st.markdown(f'<div class="metric"><div class="metric-label">강도</div><div class="metric-value" style="font-size:1rem">{intensity_icon} {intensity_label.split()[0]}</div></div>', unsafe_allow_html=True)
 
         st.markdown("---")
+        st.markdown("#### 📅 운동 프로그램 선택")
 
-        # 6개월 주차 선택 (4주 단위 그룹)
-        st.markdown("#### 📅 주차 선택 — 클릭하면 해당 주차 프로그램 생성")
+        # Phase 정의 (VAS와 목적에 따라 동적)
+        vas_now = st.session_state.vas
+        is_diet_now = "다이어트" in goal_type
+        is_low_pain_now = vas_now <= 3
 
-        phase_map = {
-            (1,2): ("🟢 Phase 1: 가동성", "#dcfce7", "#15803d"),
-            (3,4): ("🔵 Phase 2: 안정성", "#dbeafe", "#1d4ed8"),
-            (5,8): ("🟡 Phase 3: 근신경 활성화", "#fef9c3", "#854d0e"),
-            (9,16): ("🟠 Phase 4: 근력 강화", "#ffedd5", "#c2410c"),
-            (17,20): ("🔴 Phase 5: 기능적 통합", "#fee2e2", "#991b1b"),
-            (21,24): ("🟣 Phase 6: 복귀/유지", "#ede9fe", "#6d28d9"),
-        }
+        if is_diet_now:
+            phase_map = [
+                (1, [1,2],   "🟢 Phase 1", "기초 체력", "#dcfce7","#15803d"),
+                (2, [3,4,5,6], "🔵 Phase 2", "지방 연소", "#dbeafe","#1d4ed8"),
+                (3, [7,8,9,10,11,12], "🟡 Phase 3", "대사 활성화", "#fef9c3","#854d0e"),
+                (4, [13,14,15,16,17,18,19,20], "🟠 Phase 4", "체형 개선", "#ffedd5","#c2410c"),
+                (5, [21,22,23,24], "🟣 Phase 5", "유지·습관화", "#ede9fe","#6d28d9"),
+            ]
+        elif is_low_pain_now:
+            phase_map = [
+                (1, [1],     "🟢 Phase 1", "활성화", "#dcfce7","#15803d"),
+                (2, [2,3],   "🔵 Phase 2", "안정성+근력", "#dbeafe","#1d4ed8"),
+                (3, [4,5,6,7,8], "🟡 Phase 3", "근력 강화", "#fef9c3","#854d0e"),
+                (4, [9,10,11,12,13,14,15,16], "🟠 Phase 4", "퍼포먼스", "#ffedd5","#c2410c"),
+                (5, [17,18,19,20], "🔴 Phase 5", "기능적 통합", "#fee2e2","#991b1b"),
+                (6, [21,22,23,24], "🟣 Phase 6", "복귀·유지", "#ede9fe","#6d28d9"),
+            ]
+        else:
+            phase_map = [
+                (1, [1,2],   "🟢 Phase 1", "통증조절·가동성", "#dcfce7","#15803d"),
+                (2, [3,4],   "🔵 Phase 2", "안정화", "#dbeafe","#1d4ed8"),
+                (3, [5,6,7,8], "🟡 Phase 3", "근신경 활성화", "#fef9c3","#854d0e"),
+                (4, [9,10,11,12,13,14,15,16], "🟠 Phase 4", "근력 강화", "#ffedd5","#c2410c"),
+                (5, [17,18,19,20], "🔴 Phase 5", "기능적 통합", "#fee2e2","#991b1b"),
+                (6, [21,22,23,24], "🟣 Phase 6", "복귀·유지", "#ede9fe","#6d28d9"),
+            ]
 
-        # 주차 버튼 그리드
-        all_weeks = list(range(1, 25))
-        cols = st.columns(8)
-        for i, week in enumerate(all_weeks):
-            with cols[i % 8]:
-                is_generated = week in st.session_state.prescription_weeks
-                label = f"✓{week}주" if is_generated else f"{week}주"
+        # Step 1: Phase 선택
+        if "selected_phase" not in st.session_state:
+            st.session_state.selected_phase = 1
+
+        st.markdown("**① Phase 선택**")
+        phase_cols = st.columns(len(phase_map))
+        for col, (p_num, weeks, p_label, p_sub, bg, tc) in zip(phase_cols, phase_map):
+            with col:
+                has_generated = any(w in st.session_state.prescription_weeks for w in weeks)
+                btn_label = f"{'✓' if has_generated else ''}{p_label}\n{p_sub}"
+                if st.button(p_label, key=f"phase_{p_num}", use_container_width=True,
+                             help=p_sub):
+                    st.session_state.selected_phase = p_num
+
+        # 선택된 Phase 표시
+        current_phase = next((p for p in phase_map if p[0]==st.session_state.selected_phase), phase_map[0])
+        p_num, p_weeks, p_label, p_sub, bg, tc = current_phase
+        st.markdown(f'<div style="background:{bg};color:{tc};border-radius:10px;padding:10px 16px;font-weight:700;margin:8px 0">{p_label}: {p_sub} — {p_weeks[0]}~{p_weeks[-1]}주</div>', unsafe_allow_html=True)
+
+        # Step 2: 주차 선택
+        st.markdown("**② 주차 선택**")
+        week_cols = st.columns(min(len(p_weeks), 8))
+        for i, week in enumerate(p_weeks):
+            with week_cols[i % 8]:
+                is_gen = week in st.session_state.prescription_weeks
+                label = f"✓{week}주" if is_gen else f"{week}주"
                 if st.button(label, key=f"week_{week}", use_container_width=True):
                     st.session_state.selected_week = week
 
         st.markdown("---")
-
         selected_week = st.session_state.selected_week
+        # 선택된 주차가 현재 Phase에 없으면 Phase 첫번째 주차로
+        if selected_week not in p_weeks:
+            selected_week = p_weeks[0]
+            st.session_state.selected_week = selected_week
 
-        # 현재 선택 주차 표시
-        for (w_start, w_end),(phase_name, bg, tc) in phase_map.items():
-            if w_start <= selected_week <= w_end:
-                st.markdown(f'<div style="background:{bg};color:{tc};border-radius:10px;padding:10px 16px;font-weight:700;margin-bottom:12px">{phase_name} — {selected_week}주차</div>', unsafe_allow_html=True)
-                break
+        st.markdown(f'<div style="background:{bg};color:{tc};border-radius:8px;padding:8px 14px;font-weight:600;margin-bottom:12px">📌 {p_label} — {selected_week}주차 프로그램</div>', unsafe_allow_html=True)
 
         patient_info_dict = {
             "name": patient_name, "age": patient_age,
