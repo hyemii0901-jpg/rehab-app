@@ -1002,24 +1002,34 @@ def recommend_tests(body_parts, vas, pain_types, details, metabolic, goal_types,
         return [], []
 
     test_summary = "\n".join(f"- {t['id']}: {t['name']} ({t['goal']}) [{bp}]" for bp, t in all_tests)
-    prompt = f"""스포츠의학 전문가. 환자 문진을 분석하여 가장 필요한 검사 4~8개 ID를 선택하세요.
 
-부위: {', '.join(body_parts)} / 바디맵: {', '.join(body_map) or '없음'}
+    # 카테고리별 최소 추천 수 계산
+    categories = list(set(bp for bp, t in all_tests))
+    min_tests = max(len(categories) * 2, 5)  # 카테고리당 최소 2개, 최소 5개
+    max_tests = max(len(categories) * 3, 8)  # 카테고리당 최소 3개, 최대
+
+    prompt = f"""스포츠의학 전문가. 환자 문진을 분석하여 각 카테고리에서 골고루 검사를 선택하세요.
+
+부위/목적: {', '.join(body_parts)} / 바디맵: {', '.join(body_map) or '없음'}
 VAS: {vas}/10 / 통증양상: {', '.join(pain_types) or '미기재'}
 대사질환: {', '.join(metabolic) or '없음'}
 증상/병력: {details}
 
-사용 가능한 검사:
+사용 가능한 검사 (카테고리별):
 {test_summary}
 
-중요: 문진 내용에 가동범위 제한이 언급되면 ROM 검사 포함, 근력 문제면 MMT 포함, 저림/방사통이면 신경역동학 포함.
+규칙:
+1. 반드시 {min_tests}~{max_tests}개 선택 (너무 적으면 안됨)
+2. 선택된 카테고리가 {len(categories)}개이므로 각 카테고리에서 최소 1~2개씩 선택
+3. 가동범위 언급 → ROM 포함 / 근력 문제 → MMT 포함 / 저림·방사통 → 신경역동학 포함
+4. 다이어트 목적이면 체력검사 포함 / 뇌신경 목적이면 뇌신경 검사 포함
 
-반드시 이 형식으로만:
-RECOMMENDED_IDS: ID1, ID2, ID3"""
+반드시 이 형식으로만 (ID 사이 쉼표):
+RECOMMENDED_IDS: ID1, ID2, ID3, ID4, ID5"""
     try:
         response = client.messages.create(
             model="claude-haiku-4-5-20251001",
-            max_tokens=200,
+            max_tokens=300,
             messages=[{"role":"user","content":prompt}]
         )
         text = response.content[0].text
@@ -1027,9 +1037,19 @@ RECOMMENDED_IDS: ID1, ID2, ID3"""
         all_valid = {t["id"] for _, t in all_tests}
         if match:
             ids = [x.strip() for x in re.split(r"[,\s]+", match.group(1)) if x.strip()]
-            return [i for i in ids if i in all_valid], all_tests
+            result_ids = [i for i in ids if i in all_valid]
+            # AI가 너무 적게 추천하면 카테고리별 첫번째 검사 자동 보충
+            if len(result_ids) < min_tests:
+                seen_cats = set()
+                for bp, t in all_tests:
+                    if t["id"] not in result_ids and bp not in seen_cats:
+                        result_ids.append(t["id"])
+                        seen_cats.add(bp)
+                    if len(result_ids) >= min_tests:
+                        break
+            return result_ids, all_tests
         found = re.findall(r"\b([A-Z]{1,2}\d{1,2})\b", text)
-        return [i for i in found if i in all_valid][:8], all_tests
+        return [i for i in found if i in all_valid][:max_tests], all_tests
     except Exception as e:
         st.error(f"AI 오류: {e}")
         return [], []
@@ -1399,15 +1419,19 @@ with tab2:
                         prep_text = prep.group(1).strip().replace("\n", " ")
                         st.markdown(f"📍 **준비:** {prep_text}")
 
-                    # 검사 순서 추출 → 이모지로 가독성 향상
+                    # 검사 순서 추출 → 이모지로 가독성 향상 (각 줄 분리)
                     steps_raw = re.findall(r"(\d+)\.\s+(.+?)(?=\n\d+\.|\n\*\*|\Z)", raw, re.DOTALL)
                     if steps_raw:
-                        step_emojis = ["1️⃣","2️⃣","3️⃣","4️⃣","5️⃣","6️⃣"]
-                        steps_md = "\n".join(
-                            f"{step_emojis[int(n)-1] if int(n)<=6 else f'{n}.'} {s.strip().replace(chr(10),' ')}"
-                            for n, s in steps_raw
-                        )
-                        st.markdown(steps_md)
+                        step_emojis = ["1️⃣","2️⃣","3️⃣","4️⃣","5️⃣","6️⃣","7️⃣","8️⃣"]
+                        steps_lines = []
+                        for n, s in steps_raw:
+                            idx = int(n) - 1
+                            emoji = step_emojis[idx] if idx < len(step_emojis) else f"{n}."
+                            step_text = s.strip().replace("\n", " ")
+                            steps_lines.append(f"{emoji} {step_text}")
+                        # 각 스텝을 별도 줄로 표시
+                        for line in steps_lines:
+                            st.markdown(line)
 
                     # 양성 판정
                     positive = re.search(r"\*\*양성 판정:\*\*(.+?)(?:\n\*\*|\Z)", raw, re.DOTALL)
