@@ -1143,10 +1143,14 @@ Respond ONLY with valid JSON, no extra text, no markdown:
 
 Rules:
 - 4 to 5 exercises only
-- All text values in Korean
-- method field: use numbered list like "1. 자세 2. 동작 3. 주의" with spaces, NOT newlines
-- NO special characters that break JSON (no quotes inside values, use spaces)
-- intensity: {intensity_label}"""
+- All text values in Korean — 철자 오류 절대 금지
+- 운동명은 정확한 한국어 운동 이름만 사용 (예: 플랭크, 스쿼트, 런지, 버드독, 브릿지, 데드버그, 스트레칭 등)
+- 절대 "조식" 같은 단어 사용 금지 — 운동 이름만 작성
+- method field: "1. 시작자세 설명 2. 동작수행 설명 3. 주의사항" 형식으로 각 단계를 숫자+점+공백으로 구분
+- NO special characters that break JSON
+- intensity: {intensity_label}
+- 다이어트 목적이면 유산소+근력 운동 위주, 스트레칭만 나오면 안됨
+- 통증 낮으면(VAS 3 이하) 근력 운동과 기능 운동 포함"""
 
     try:
         response = client.messages.create(
@@ -1337,15 +1341,19 @@ st.markdown('<div class="app-title">🏥 AI 맞춤형 운동재활 시스템</di
 st.markdown('<div class="app-sub">초보 트레이너도 즉시 활용 가능한 임상 의사결정 지원 시스템 v3.0</div>', unsafe_allow_html=True)
 st.markdown("---")
 
-# BMI 카드 (다이어트)
-if goal_type == "다이어트":
+# BMI 변수 메인에서 독립적으로 재계산 (사이드바 변수 의존 X)
+_bmi = calc_bmi(height, weight)
+_bl, _bc = bmi_label(_bmi)
+
+# BMI 카드 — 다이어트가 goal_types 어디에 있든 표시
+if "다이어트" in goal_types:
     low_w, high_w = normal_weight_range(height)
     diff = round(weight - high_w, 1)
     st.markdown('<div class="card card-blue">', unsafe_allow_html=True)
     st.markdown("### 📊 BMI 분석")
     c1,c2,c3,c4 = st.columns(4)
-    with c1: st.markdown(f'<div class="metric"><div class="metric-label">현재 BMI</div><div class="metric-value" style="color:{bc}">{bmi}</div></div>', unsafe_allow_html=True)
-    with c2: st.markdown(f'<div class="metric"><div class="metric-label">판정</div><div class="metric-value" style="color:{bc}">{bl}</div></div>', unsafe_allow_html=True)
+    with c1: st.markdown(f'<div class="metric"><div class="metric-label">현재 BMI</div><div class="metric-value" style="color:{_bc}">{_bmi}</div></div>', unsafe_allow_html=True)
+    with c2: st.markdown(f'<div class="metric"><div class="metric-label">판정</div><div class="metric-value" style="color:{_bc}">{_bl}</div></div>', unsafe_allow_html=True)
     with c3: st.markdown(f'<div class="metric"><div class="metric-label">정상 체중</div><div class="metric-value">{low_w}~{high_w}kg</div></div>', unsafe_allow_html=True)
     with c4:
         if diff > 0:
@@ -1679,13 +1687,27 @@ with tab3:
                 for idx, ex in enumerate(exercises):
                     with ex_cols[idx % 2]:
                         icon = get_exercise_icon(ex.get("icon_keyword", ex.get("name","")))
+                        # method 줄바꿈 처리: "1. 자세 2. 동작" → 각 줄로 분리
+                        method_raw = ex.get('method','')
+                        # "1. 자세 2. 동작" 또는 "1.자세 2.동작" 형태 모두 파싱
+                        method_steps = re.findall(r'(\d+)\.\s*(.+?)(?=\s*\d+\.\s|\s*$)', method_raw.strip())
+                        if method_steps:
+                            step_emojis = ["1️⃣","2️⃣","3️⃣","4️⃣","5️⃣","6️⃣"]
+                            method_html = "".join(
+                                f'<div style="padding:3px 0;font-size:0.85rem">{step_emojis[int(n)-1] if int(n)<=6 else n+"."} {s.strip()}</div>'
+                                for n, s in method_steps
+                            )
+                        else:
+                            # 줄바꿈이 있으면 그대로, 없으면 문장 그대로
+                            method_html = method_raw.replace("\n","<br>")
+
                         st.markdown(f"""
 <div class="ex-card">
   <div class="ex-icon">{icon}</div>
   <div class="ex-name">{ex.get('name','')}</div>
   <div class="ex-goal">🎯 {ex.get('goal','')}</div>
-  <div style="font-size:0.8rem;color:#2563eb;font-weight:600;margin-bottom:4px">⏱️ {ex.get('sets','')}</div>
-  <div class="ex-method">{ex.get('method','').replace(chr(10),'<br>')}</div>
+  <div style="font-size:0.8rem;color:#2563eb;font-weight:600;margin-bottom:6px">⏱️ {ex.get('sets','')}</div>
+  <div class="ex-method">{method_html}</div>
   <div style="font-size:0.78rem;color:#7c3aed;margin-top:6px">💡 {ex.get('tip','')}</div>
 </div>""", unsafe_allow_html=True)
 
