@@ -56,7 +56,7 @@ hr{border-color:#e0e4ea;}
 try:
     ANTHROPIC_API_KEY = st.secrets["ANTHROPIC_API_KEY"]
 except Exception:
-    ANTHROPIC_API_KEY = "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"  # 🔑 여기에 API 키 입력
+    ANTHROPIC_API_KEY = ""  # 🔑 여기에 API 키 입력
 
 # ── 운동 아이콘 매핑 ───────────────────────────────────────────────────────────
 EXERCISE_ICONS = {
@@ -416,6 +416,415 @@ TEST_DB = {
 **양성 판정:** 한쪽이 5mm 이상 높으면 양성 (늑골 융기 = rib hump)
 **측정도구:** Scoliometer 사용 시 7° 이상이면 X-ray 의뢰 권장""","video":"https://www.youtube.com/results?search_query=Adam+forward+bend+test+scoliosis+screening"},
     ],
+
+    "흉추 (Thoracic Spine)": [
+        {"id":"T1","name":"Seated Thoracic Rotation Test","goal":"흉추 회전 가동성 측정","method":"""
+**준비 자세:** 환자는 팔짱을 끼고 의자에 바르게 앉습니다 (발은 고정).
+
+**검사 순서:**
+1. 골반이 움직이지 않도록 고정합니다
+2. 팔짱 낀 상태로 몸통을 좌측으로 최대한 회전시킵니다
+3. 각도를 측정하거나 시각적으로 평가합니다
+4. 반대편도 동일하게 시행하고 좌우 비교합니다
+
+**정상 기준:** 양측 40~50° 이상, 좌우 차이 10° 미만
+**양성 판정:** 한쪽이 현저히 제한되거나 통증 발생 시
+**임상 의미:** 흉추 가동성 제한 → 어깨/요추 보상 패턴 유발""","video":"https://www.youtube.com/results?search_query=seated+thoracic+rotation+test"},
+        {"id":"T2","name":"Chest Expansion Test","goal":"흉곽 확장성 및 호흡 기능 평가","method":"""
+**준비 자세:** 환자는 바르게 섭니다. 줄자를 준비합니다.
+
+**검사 순서:**
+1. 흉골 검상돌기 높이(4번째 갈비뼈 간격)에 줄자를 두릅니다
+2. 최대 호기(숨을 완전히 내쉰) 상태에서 둘레를 측정합니다
+3. 최대 흡기(숨을 최대한 들이쉰) 상태에서 둘레를 측정합니다
+4. 두 값의 차이를 계산합니다
+
+**정상 기준:** 5cm 이상 차이
+**양성 판정:** 2.5cm 미만 → 흉곽 가동성 저하 의심
+**임상 의미:** 강직성 척추염, 흉추 후만 과도, 호흡 패턴 이상""","video":"https://www.youtube.com/results?search_query=chest+expansion+test+thoracic"},
+        {"id":"T3","name":"Thoracic Kyphosis Assessment","goal":"흉추 후만 정도 평가","method":"""
+**준비 자세:** 환자는 벽에 등을 대고 편안히 섭니다.
+
+**검사 순서:**
+1. 발뒤꿈치, 엉덩이, 어깨를 벽에 붙이도록 합니다
+2. 뒷머리가 벽에 닿는지 확인합니다 (닿지 않으면 양성 의심)
+3. 뒷머리와 벽 사이의 거리를 측정합니다
+4. 측면에서 사진 촬영 후 Cobb 각도 시각 평가를 시행합니다
+
+**정상 기준:** 머리가 벽에 닿음, 흉추 후만 20~40°
+**양성 판정:** 뒷머리-벽 거리 3cm 이상 또는 과도한 전두부 전방 이동
+**임상 의미:** 라운드숄더, 두부 전방 이동, 요통/어깨 통증과 연관""","video":"https://www.youtube.com/results?search_query=thoracic+kyphosis+assessment+posture"},
+    ],
+
+    "코어 안정성 (Core Stability)": [
+        {"id":"CO1","name":"McGill Torso Endurance Test","goal":"코어 근지구력 평가 (굴곡/신전/측면)","method":"""
+**① 굴곡 지구력 (Flexion Endurance):**
+1. 등받이 60° 기울인 쐐기에 등을 기댑니다
+2. 팔짱을 끼고 무릎 90° 굴곡 자세 유지
+3. 등받이를 5cm 뒤로 이동 → 자세 유지 시간 측정
+4. 자세 무너질 때까지 기록
+
+**② 신전 지구력 (Extension Endurance):**
+1. 테이블 끝에 엎드려 상체를 공중에 수평으로 유지
+2. 팔짱 끼고 유지 시간 측정
+
+**③ 측면 지구력 (Side Bridge):**
+1. 한쪽 팔꿈치로 사이드 플랭크 자세
+2. 유지 시간 측정, 양쪽 비교
+
+**정상 기준 (건강한 성인):** 굴곡 136초 / 신전 161초 / 측면 95초
+**불균형 지표:** 굴곡:신전 비 >1.0 또는 좌우 측면 비 >0.05 → 손상 위험""","video":"https://www.youtube.com/results?search_query=McGill+torso+endurance+test+core"},
+        {"id":"CO2","name":"Dead Bug / Bird Dog Test","goal":"요추 안정화 조절 능력 평가","method":"""
+**Dead Bug:**
+1. 앙와위로 눕고 팔을 수직으로 올립니다
+2. 무릎을 90°로 들어올립니다
+3. 반대편 팔-다리를 동시에 천천히 내립니다 (요추 중립 유지)
+4. 요추가 바닥에서 뜨거나 골반이 기울면 양성
+
+**Bird Dog:**
+1. 네발기기 자세 (테이블탑)
+2. 반대편 팔-다리를 동시에 수평으로 뻗습니다
+3. 몸통 회전 없이 10초 유지
+4. 좌우 각 10회 반복 시 안정성 평가
+
+**양성 판정:** 요추 과전만, 몸통 회전, 골반 측방 이동 발생 시
+**임상 의미:** 심층 안정화 근육(다열근, 복횡근) 기능 저하""","video":"https://www.youtube.com/results?search_query=dead+bug+bird+dog+core+stability+test"},
+        {"id":"CO3","name":"Plank / Side Plank Test","goal":"코어 지구력 평가","method":"""
+**Plank (전방 플랭크):**
+1. 전완을 바닥에 대고 발끝으로 지지합니다
+2. 머리-어깨-엉덩이-발뒤꿈치 일직선 유지
+3. 유지 시간 측정 (자세 무너질 때까지)
+
+**Side Plank (측면 플랭크):**
+1. 한쪽 전완으로 지지, 발은 겹치거나 나란히
+2. 어깨-엉덩이-발목 일직선 유지
+3. 유지 시간 측정, 양측 비교
+
+**평가 기준 (성인):**
+- 플랭크: 60초 이상 정상 / 30초 미만 취약
+- 사이드 플랭크: 45초 이상 정상
+- 좌우 차이 15% 이상: 불균형
+
+**관찰 포인트:** 엉덩이 하강, 요추 처짐, 목 앞으로 빠짐""","video":"https://www.youtube.com/results?search_query=plank+side+plank+endurance+test"},
+        {"id":"CO4","name":"Pelvic Tilt Control Test","goal":"골반 경사 조절 인지력 평가","method":"""
+**준비 자세:** 환자는 등을 벽에 기대고 무릎을 약간 굽혀 섭니다.
+
+**검사 순서:**
+1. 요추와 벽 사이의 공간을 확인합니다 (손이 들어가는지)
+2. 골반을 전방 경사(허리 앞으로) → 후방 경사(허리 납작) 번갈아 시행
+3. 중립 위치에서 10초 유지하도록 합니다
+4. 능동적으로 중립을 찾고 유지하는 능력을 평가합니다
+
+**양성 판정:** 중립 골반 인지 불가, 과전만 또는 과후만 고착
+**임상 의미:** 요통, 고관절 충돌, 슬관절 정렬 이상의 원인 파악""","video":"https://www.youtube.com/results?search_query=pelvic+tilt+control+neutral+spine"},
+    ],
+
+    "기능적 움직임 (Functional Movement)": [
+        {"id":"F1","name":"Overhead Squat Test","goal":"전신 가동성 및 보상 작용 확인","method":"""
+**준비 자세:** 환자는 어깨너비로 서고 팔을 머리 위로 완전히 뻗습니다.
+
+**검사 순서:**
+1. 팔을 머리 위로 뻗은 채 스쿼트를 내려갑니다
+2. 발뒤꿈치가 바닥에서 뜨지 않고 최대한 깊이 내려갑니다
+3. 전면/측면/후면에서 관찰합니다
+
+**관찰 포인트:**
+- 발: 외회전, 발뒤꿈치 들림
+- 무릎: 내측 함몰 (knee valgus)
+- 몸통: 과도한 전방 기울임
+- 팔: 앞으로 쓰러짐
+
+**보상 패턴 → 원인:**
+무릎 내측 함몰 → 중둔근/외회전근 약화
+발뒤꿈치 들림 → 종아리 단축
+팔 앞으로 → 흉추/어깨 가동성 부족""","video":"https://www.youtube.com/results?search_query=overhead+squat+assessment+FMS"},
+        {"id":"F2","name":"Single Leg Squat Test","goal":"하지 정렬 및 중둔근 조절력","method":"""
+**준비 자세:** 한발로 서서 반대쪽 발을 살짝 들어올립니다.
+
+**검사 순서:**
+1. 한발 스쿼트를 천천히 시행합니다 (60° 굴곡 목표)
+2. 전면에서 무릎 정렬을 관찰합니다
+3. 측면에서 몸통 기울기를 관찰합니다
+4. 5회 반복, 양측 비교합니다
+
+**관찰 포인트:**
+- 무릎 내측 함몰 (valgus) → 중둔근/VMO 약화
+- 골반 반대편 하강 (Trendelenburg) → 지지측 중둔근 약화
+- 몸통 과도한 전방 기울임 → 고관절 굴곡근 단축
+- 발목 안쪽 무너짐 → 후경골근/발목 안정성 문제""","video":"https://www.youtube.com/results?search_query=single+leg+squat+test+assessment"},
+        {"id":"F3","name":"In-line Lunge","goal":"균형 및 하지 가동성·안정성","method":"""
+**준비 자세:** 발 길이만큼 앞뒤로 벌리고 섭니다. 막대기를 등 뒤에 세로로 붙입니다(있다면).
+
+**검사 순서:**
+1. 뒷발 무릎이 앞발 뒤꿈치 바로 뒤에 닿도록 런지를 내려갑니다
+2. 막대기가 몸통과 3점 접촉 유지 (뒷머리, 등, 엉덩이)
+3. 앞무릎이 발 정렬에서 벗어나지 않게 합니다
+4. 좌우 각 3회 시행합니다
+
+**양성 판정 (FMS 기준):**
+- 0점: 통증 발생
+- 1점: 자세 유지 불가
+- 2점: 보상 움직임 있음
+- 3점: 완벽한 수행
+
+**임상 의미:** 고관절 굴곡근 유연성, 발목 가동성, 균형 능력 통합 평가""","video":"https://www.youtube.com/results?search_query=FMS+inline+lunge+test"},
+        {"id":"F4","name":"Y-Balance Test","goal":"동적 균형 감각 및 부상 예측","method":"""
+**준비 자세:** 중앙 발판에 한발로 서고 3방향 리치 선을 준비합니다.
+
+**검사 순서:**
+1. 전방(Anterior): 발끝 방향으로 최대한 뻗기
+2. 후내측(Posteromedial): 뒤 안쪽으로 최대한 뻗기
+3. 후외측(Posterolateral): 뒤 바깥쪽으로 최대한 뻗기
+4. 각 방향 3회 시행, 최대 거리 기록
+5. 복합점수: (전방+후내측+후외측) ÷ (하지길이×3) × 100
+
+**판단 기준:**
+- 복합점수 < 89% → 부상 위험 4배 증가
+- 좌우 전방 차이 > 4cm → 부상 위험 2.5배 증가
+- 전방 낮음 → 발목/무릎 / 후방 낮음 → 고관절/코어""","video":"https://www.youtube.com/results?search_query=Y+balance+test+dynamic+balance"},
+    ],
+
+    "신경역동학 (Neurodynamics)": [
+        {"id":"N4","name":"ULTT2 (Radial Nerve)","goal":"요골신경 긴장도 확인","method":"""
+**준비 자세:** 환자는 검사대에 눕습니다. 검사자는 환자 옆에 섭니다.
+
+**검사 순서:**
+1. 견갑대를 아래로 눌러 고정합니다
+2. 팔꿈치를 신전시킵니다
+3. 전완을 회내(손바닥 아래)시킵니다
+4. 손목을 굴곡시킵니다
+5. 어깨를 내회전·내전시킵니다
+6. 고개를 반대편으로 측굴하여 증상 변화 확인합니다
+
+**양성 판정:** 엄지/손등 방사통, 저림 발생 또는 고개 측굴 시 증상 변화
+**임상 의미:** 요골신경 포착 또는 경추 신경근 (C6~C7) 병변""","video":"https://www.youtube.com/results?search_query=ULTT2+radial+nerve+tension+test"},
+        {"id":"N5","name":"ULTT3 (Ulnar Nerve)","goal":"척골신경 긴장도 확인","method":"""
+**준비 자세:** 환자는 검사대에 눕습니다.
+
+**검사 순서:**
+1. 견갑대를 아래로 눌러 고정합니다
+2. 어깨를 90° 외전, 외회전시킵니다
+3. 전완을 회외(손바닥 위)시킵니다
+4. 손목을 신전시킵니다
+5. 팔꿈치를 굴곡시킵니다 (귀 쪽으로)
+6. 고개를 반대편으로 측굴하여 증상 변화 확인합니다
+
+**양성 판정:** 4~5번째 손가락 저림, 팔꿈치 내측 통증 발생
+**임상 의미:** 척골신경 포착 (주두 터널) 또는 C8~T1 신경근 병변""","video":"https://www.youtube.com/results?search_query=ULTT3+ulnar+nerve+tension+test"},
+        {"id":"N6","name":"Femoral Nerve Slump Test","goal":"대퇴신경 긴장도 확인","method":"""
+**준비 자세:** 환자는 복와위(엎드려)로 눕습니다.
+
+**검사 순서:**
+1. 환자의 무릎을 굴곡시킵니다 (발뒤꿈치 → 엉덩이 방향)
+2. 동시에 고관절을 약간 신전시킵니다
+3. 허벅지 앞쪽(대퇴사두근 부위)으로 방사되는 통증/저림 확인
+4. 경추 굴곡 추가 시 증상 변화 확인합니다
+
+**양성 판정:** 허벅지 앞쪽 방사통/저림 발생 시
+**임상 의미:** L2~L4 신경근 병변, 대퇴신경 포착 또는 긴장""","video":"https://www.youtube.com/results?search_query=femoral+nerve+tension+test+prone"},
+    ],
+
+    "뇌신경-퍼포먼스 (Neuro-Performance)": [
+        {"id":"NP1","name":"NPC (Near Point of Convergence)","goal":"시각 수렴 신경 기능 평가","method":"""
+**준비물:** 펜 또는 작은 물체
+
+**검사 순서:**
+1. 펜을 환자 눈에서 40cm 앞에 놓습니다
+2. 환자에게 펜을 바라보게 하면서 천천히 코 방향으로 가져옵니다
+3. 한쪽 눈이 바깥쪽으로 돌아가거나(외편위) 두 개로 보인다고 할 때의 거리를 측정합니다
+4. 다시 멀어지면서 하나로 보이는 회복 지점도 기록합니다
+
+**정상 기준:** 파열점 6cm 이하, 회복점 10cm 이하
+**양성 판정:** 파열점 10cm 초과
+**임상 의미:** 집중력 저하, 어지러움, 읽기 어려움, 뇌진탕 후 주요 지표""","video":"https://www.youtube.com/results?search_query=near+point+convergence+test+NPC"},
+        {"id":"NP2","name":"VOMS (Vestibular/Ocular Motor Screening)","goal":"시각-전정 협응 기능 평가","method":"""
+**각 항목 시행 전후 증상(0~10점) 기록**
+
+**① Smooth Pursuit (부드러운 추적):**
+손가락을 좌우/상하로 천천히 움직이며 눈으로 추적 (속도: 1m를 2초에)
+
+**② Saccade (빠른 안구 이동):**
+두 목표물 사이를 빠르게 번갈아 보기 (수평/수직)
+
+**③ Convergence (수렴):**
+NPC 검사 동일하게 시행
+
+**④ VOR (전정-안반사):**
+목표물 고정 후 고개를 좌우로 빠르게 흔들기 (2Hz)
+
+**⑤ Visual Motion Sensitivity:**
+큰 격자 패턴 앞에서 좌우로 걷기
+
+**양성 판정:** 각 항목에서 증상 2점 이상 증가
+**임상 의미:** 뇌진탕 평가, 전정 기능 장애, 어지럼 원인 감별""","video":"https://www.youtube.com/results?search_query=VOMS+vestibular+ocular+motor+screening"},
+        {"id":"NP3","name":"DVA (Dynamic Visual Acuity)","goal":"움직임 속 시야 안정 능력 평가","method":"""
+**준비물:** 시력표 (2.5~4m 거리), 메트로놈 (120bpm)
+
+**검사 순서:**
+1. **정적 시력 측정:** 머리 고정 상태에서 읽을 수 있는 가장 작은 줄 기록
+2. **동적 시력 측정:** 메트로놈 120bpm에 맞춰 고개를 좌↔우로 흔들며 (2Hz) 시력표 읽기
+3. 두 값의 차이(줄 수) 계산
+
+**결과 해석:**
+- 0~1줄 차이: 정상
+- 1줄 이상 감소: VOR 기능 저하 의심 → VOR 강화 훈련 필요
+
+**임상 의미:** 운동 중 어지러움, 멀미, 집중력 저하, 스포츠 퍼포먼스 저하와 연관""","video":"https://www.youtube.com/results?search_query=dynamic+visual+acuity+DVA+test+vestibular"},
+        {"id":"NP4","name":"Head Impulse Test (VOR Quick)","goal":"말초 전정계 기능 빠른 선별","method":"""
+**준비 자세:** 환자는 검사자의 코를 바라봅니다.
+
+**검사 순서:**
+1. 검사자는 환자의 머리를 양손으로 잡습니다
+2. 목표물(검사자 코)을 주시하게 합니다
+3. 예고 없이 머리를 한쪽으로 빠르게 10~15° 회전시킵니다
+4. 시선이 목표물에서 이탈하는지 관찰합니다
+5. 양쪽 모두 시행합니다
+
+**양성 판정:** 머리 회전 후 시선이 이탈하고 따라오는 교정안구운동(saccade) 발생 시
+**임상 의미:** 반규관 또는 전정신경 기능 저하 → 균형·퍼포먼스 저하""","video":"https://www.youtube.com/results?search_query=head+impulse+test+VOR+vestibular"},
+        {"id":"NP5","name":"Reactive Step Test","goal":"뇌-근육 반응 속도 및 낙상 위험 평가","method":"""
+**준비 자세:** 환자는 편안히 서 있습니다 (발은 골반 너비, 맨발 또는 미끄럼 방지 신발).
+
+**검사 순서:**
+1. 검사자는 예고 없이 환자의 가슴/등/어깨 중 한 곳을 갑작스럽게 밀어 자극합니다
+2. 환자가 내딛는 발의 반응 속도와 방향을 관찰합니다
+3. 여러 방향에서 3~5회 시행합니다
+
+**평가 기준:**
+- 좋은 반응: 즉각 1스텝으로 안정화, 밀린 방향으로 정확히 반응
+- 나쁜 반응: 여러 걸음 필요, 스텝 지연, 잘못된 방향 반응
+
+**임상 의미:**
+스텝 지연 → CNS 반응 속도 저하 / 여러 스텝 → 하지 근력/균형 저하
+노인 낙상 위험 평가 및 스포츠 민첩성 지표""","video":"https://www.youtube.com/results?search_query=reactive+step+test+balance+perturbation"},
+        {"id":"NP6","name":"TUG + Cognitive Dual Task","goal":"걷기 중 주의 분배 능력 평가","method":"""
+**준비물:** 의자, 3m 표시 테이프, 타이머
+
+**검사 순서:**
+1. **기본 TUG:** 의자에서 일어나 → 3m 걷기 → 돌아오기 → 앉기 (시간 측정)
+2. **듀얼 태스크 TUG:** 동일 동작 + 동시에 인지 과제 수행
+   - 인지 과제 예: "100에서 3씩 빼기" 또는 동물 이름 말하기
+
+**결과 해석:**
+- 시간 10~20% 증가: 정상 범위
+- 20% 이상 악화: 듀얼태스크 결함 (전정+실행기능 저하)
+- 동작 비틀림/불안정 증가: 균형 통합 문제
+- 인지 오류 증가: 주의 처리 결함
+
+**임상 의미:** 낙상 위험, 스포츠 상황 판단 능력, 뇌진탕 후 평가""","video":"https://www.youtube.com/results?search_query=TUG+cognitive+dual+task+test"},
+        {"id":"NP7","name":"Single Leg Stance (눈 뜸/감기)","goal":"발목-무릎 고유수용성 + 전정계 평가","method":"""
+**준비 자세:** 환자는 맨발로 평평한 바닥에 섭니다.
+
+**검사 순서:**
+1. 한발로 서서 **눈 뜬 상태** 30초 유지 (시간 측정)
+2. 동일한 발로 **눈 감은 상태** 30초 유지 (시간 측정)
+3. 반대편도 동일하게 시행합니다
+4. 흔들림, 발 이동, 지면 접촉 오류 횟수를 기록합니다
+
+**정상 기준:**
+- 눈 뜸: 30초 완수 (60세 이상 20초)
+- 눈 감음: 20초 이상 (60세 이상 10초)
+
+**임상 의미:**
+눈 뜸 불안정 → 고유수용감각 저하 / 눈 감음 불안정 → 전정계 문제""","video":"https://www.youtube.com/results?search_query=single+leg+stance+test+balance+eyes+closed"},
+    ],
+
+    "ROM (관절가동범위)": [
+        {"id":"R1","name":"경추 ROM","goal":"경추 6방향 가동범위 측정","method":"""
+**측정 방법 (각도계 또는 CROM 기기 사용):**
+
+1. **굴곡 (Flexion):** 턱을 가슴 방향으로 → 정상 45~50°
+2. **신전 (Extension):** 천장 방향으로 → 정상 45~60°
+3. **우측굴 (R. Lateral Flexion):** 귀를 어깨 방향으로 → 정상 45°
+4. **좌측굴 (L. Lateral Flexion):** 반대편 → 정상 45°
+5. **우회전 (R. Rotation):** 턱을 어깨 방향으로 → 정상 60~80°
+6. **좌회전 (L. Rotation):** 반대편 → 정상 60~80°
+
+**기록:** 각 방향 각도, 통증 발생 각도, 좌우 비대칭 여부
+**임상 의미:** 제한 패턴으로 관절, 근육, 신경 문제 감별""","video":"https://www.youtube.com/results?search_query=cervical+ROM+measurement+goniometer"},
+        {"id":"R2","name":"견관절 ROM","goal":"어깨 가동범위 측정","method":"""
+**측정 방법 (각도계 사용):**
+
+1. **굴곡 (Flexion):** 팔을 앞으로 → 정상 170~180°
+2. **신전 (Extension):** 팔을 뒤로 → 정상 50~60°
+3. **외전 (Abduction):** 팔을 옆으로 → 정상 170~180°
+4. **내회전 (IR):** 팔꿈치 90° 후 전완 아래 → 정상 60~80°
+5. **외회전 (ER):** 팔꿈치 90° 후 전완 위 → 정상 80~90°
+6. **수평 내전:** 팔 수평으로 가슴 방향 → 정상 130°
+
+**주요 임상 패턴:**
+외회전 제한 + 내회전 제한 → 유착성 관절낭염
+외전 제한 + 통증 → 충돌증후군""","video":"https://www.youtube.com/results?search_query=shoulder+ROM+measurement+goniometer"},
+        {"id":"R3","name":"요추 ROM","goal":"요추 가동범위 측정","method":"""
+**측정 방법:**
+
+1. **굴곡 (Flexion):** 앞으로 굽히기 → 손가락-바닥 거리(cm) 또는 Schober test
+   - Schober: S1에서 10cm 위 표시 → 굴곡 후 15cm 이상이면 정상
+2. **신전 (Extension):** 뒤로 젖히기 → 정상 20~30°
+3. **측굴 (Lateral Flexion):** 옆으로 굽히기 → 정상 30~40° (양측)
+4. **회전 (Rotation):** 앉아서 몸통 회전 → 정상 35~45° (양측)
+
+**기록:** 각 방향 제한, 통증 발생 방향, 증상 악화 패턴""","video":"https://www.youtube.com/results?search_query=lumbar+ROM+measurement+assessment"},
+        {"id":"R4","name":"슬관절 ROM","goal":"무릎 가동범위 측정","method":"""
+**측정 방법 (각도계 사용):**
+
+1. **굴곡 (Flexion):** 무릎 최대 굴곡 → 정상 130~150°
+2. **신전 (Extension):** 무릎 완전 신전 → 정상 0° (과신전 -5~-10°)
+
+**측정 자세:**
+- 앙와위: 고관절 굴곡 90° 상태에서 무릎 굴곡 측정
+- 복와위: 무릎 최대 굴곡 측정
+
+**임상 패턴:**
+- 굴곡 제한: 관절강직, 슬개 주위 구축
+- 신전 제한: 슬굴곡근 단축, 관절 삼출""","video":"https://www.youtube.com/results?search_query=knee+ROM+goniometer+measurement"},
+        {"id":"R5","name":"족관절 ROM","goal":"발목 가동범위 측정","method":"""
+**측정 방법 (각도계 사용):**
+
+1. **배측굴곡 (Dorsiflexion):** 발등 들기
+   - 무릎 신전 시: 정상 20° (비복근 평가)
+   - 무릎 굴곡 시: 정상 30° (가자미근 평가)
+   - Silfverskiold Test: 무릎 굴곡/신전 비교로 단축 부위 감별
+2. **족저굴곡 (Plantarflexion):** 발끝 내리기 → 정상 45~50°
+3. **내번 (Inversion):** 발안쪽 들기 → 정상 35°
+4. **외번 (Eversion):** 발바깥쪽 들기 → 정상 15~20°
+
+**임상 의미:** 배측굴곡 제한 → 종아리 단축, 발목 불안정성, 과사용 손상""","video":"https://www.youtube.com/results?search_query=ankle+ROM+measurement+dorsiflexion"},
+    ],
+
+    "MMT (도수근력검사)": [
+        {"id":"M1","name":"MMT — 경추/어깨 근군","goal":"경추 및 견관절 주요 근육 도수근력 측정","method":"""
+**MMT 등급 기준:**
+- 5/5: 정상 — 최대 저항에 대해 완전한 가동범위 유지
+- 4/5: 양호 — 중등도 저항 가능
+- 3/5: 보통 — 중력 대항 가동범위 완수 (무저항)
+- 2/5: 불량 — 중력 제거 시 가동범위 완수
+- 1/5: 흔적 — 근 수축 촉지되나 움직임 없음
+- 0/5: 무반응
+
+**검사 근육:**
+1. **경추 굴곡근** (흉쇄유돌근): 앙와위 두부 거상 저항
+2. **경추 신전근** (두판상근): 복와위 두부 신전 저항
+3. **승모근 상부**: 어깨 으쓱(거상) 저항
+4. **삼각근 전방**: 팔 전방 굴곡 90° 저항
+5. **극상근**: 빈 캔 자세 외전 저항
+6. **극하근/소원근**: 팔꿈치 90° 굴곡 외회전 저항
+7. **견갑하근**: Lift-off 자세 내회전 저항""","video":"https://www.youtube.com/results?search_query=MMT+manual+muscle+testing+shoulder+cervical"},
+        {"id":"M2","name":"MMT — 요추/하지 근군","goal":"요추 및 하지 주요 근육 도수근력 측정","method":"""
+**MMT 등급 기준 (위와 동일)**
+
+**검사 근육:**
+1. **장요근** (고관절 굴곡): 앉은 자세 고관절 굴곡 저항
+2. **중둔근** (고관절 외전): 측와위 고관절 외전 저항
+3. **대둔근** (고관절 신전): 복와위 고관절 신전 저항
+4. **대퇴사두근** (슬관절 신전): 앉은 자세 슬관절 신전 저항
+5. **슬굴곡근** (슬관절 굴곡): 복와위 슬관절 굴곡 저항
+6. **전경골근** (족관절 배측굴곡): 배측굴곡 저항
+7. **비복근/가자미근** (족관절 족저굴곡): 발뒤꿈치 들기 저항
+
+**신경근 레벨 참고:**
+L2~L3: 장요근 / L4: 전경골근 / L5: 단신근 / S1: 비복근""","video":"https://www.youtube.com/results?search_query=MMT+manual+muscle+testing+lower+extremity"},
+    ],
 }
 
 # ── Session State ─────────────────────────────────────────────────────────────
@@ -494,17 +903,21 @@ def recommend_tests(body_parts, vas, pain_types, details, metabolic, goal_types,
 
     # 바디맵 선택 부위 → 연관 DB 키 매핑
     bodymap_to_db = {
-        "머리/얼굴": "뇌신경 (Neurological)", "뒷머리": "뇌신경 (Neurological)",
+        "머리/얼굴": "뇌신경-퍼포먼스 (Neuro-Performance)",
+        "뒷머리": "뇌신경-퍼포먼스 (Neuro-Performance)",
         "목 앞": "경추 (Cervical)", "목 뒤": "경추 (Cervical)",
+        "가슴": "흉추 (Thoracic Spine)",
+        "등(상부)": "흉추 (Thoracic Spine)",
+        "등(하부)/요추": "요추 (Lumbar)",
+        "복부": "코어 안정성 (Core Stability)",
         "어깨(앞)": "견관절 (Shoulder)", "어깨(뒤)": "견관절 (Shoulder)",
         "팔꿈치(앞)": "주관절 (Elbow)", "팔꿈치(뒤)": "주관절 (Elbow)",
         "손목/손": "수관절 (Wrist/Hand)",
-        "가슴": "견관절 (Shoulder)",
-        "등(상부)": "경추 (Cervical)", "등(하부)/요추": "요추 (Lumbar)",
-        "복부": "요추 (Lumbar)",
         "고관절(앞)": "고관절 (Hip)", "엉덩이": "고관절 (Hip)",
         "무릎(앞)": "슬관절 (Knee)", "무릎(뒤)": "슬관절 (Knee)",
-        "종아리": "족관절 (Ankle/Foot)", "발목/발": "족관절 (Ankle/Foot)", "발뒤꿈치": "족관절 (Ankle/Foot)",
+        "종아리": "족관절 (Ankle/Foot)",
+        "발목/발": "족관절 (Ankle/Foot)",
+        "발뒤꿈치": "족관절 (Ankle/Foot)",
     }
     for region in body_map:
         mapped_db = bodymap_to_db.get(region)
@@ -716,13 +1129,21 @@ with st.sidebar:
 
     st.markdown("---")
     st.markdown("**🎯 검사 목적 (복수 선택)**")
-    goal_types = st.multiselect("목적", ["근골격 재활","다이어트","체형교정","뇌신경 재활","기타"],
+    goal_types = st.multiselect("목적", ["근골격 재활","다이어트","체형교정","뇌신경 재활","뇌신경-퍼포먼스","코어/기능","ROM 측정","MMT","기타"],
                                 default=["근골격 재활"], placeholder="선택...", label_visibility="collapsed")
     if not goal_types: goal_types = ["근골격 재활"]
     goal_type = goal_types[0]
 
-    musculo_parts = [k for k in TEST_DB if k not in ["다이어트 / 체력검사","체형교정","뇌신경 (Neurological)"]]
-    special_map = {"다이어트":"다이어트 / 체력검사","체형교정":"체형교정","뇌신경 재활":"뇌신경 (Neurological)"}
+    musculo_parts = [k for k in TEST_DB if k not in ["다이어트 / 체력검사","체형교정","뇌신경 (Neurological)","ROM (관절가동범위)","MMT (도수근력검사)","기능적 움직임 (Functional Movement)","코어 안정성 (Core Stability)","신경역동학 (Neurodynamics)","뇌신경-퍼포먼스 (Neuro-Performance)"]]
+    special_map = {
+        "다이어트":"다이어트 / 체력검사",
+        "체형교정":"체형교정",
+        "뇌신경 재활":"뇌신경 (Neurological)",
+        "뇌신경-퍼포먼스":"뇌신경-퍼포먼스 (Neuro-Performance)",
+        "코어/기능":"코어 안정성 (Core Stability)",
+        "ROM 측정":"ROM (관절가동범위)",
+        "MMT":"MMT (도수근력검사)",
+    }
     auto_parts = [special_map[g] for g in goal_types if g in special_map]
 
     if "근골격 재활" in goal_types or "기타" in goal_types:
