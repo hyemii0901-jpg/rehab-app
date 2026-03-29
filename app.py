@@ -1060,25 +1060,69 @@ def generate_week_program(week, patient_info, test_results, body_part, intensity
     if not client:
         return "API 키가 설정되지 않았습니다."
 
-    # 주차별 단계 결정
-    if week <= 2:
-        phase = "Step 1: 가동성 (Mobility) — 통증 감소, 관절 가동범위 회복"
-        focus = "부드러운 스트레칭, 열 적용, 관절 가동운동 위주"
-    elif week <= 4:
-        phase = "Step 2: 안정성 (Stability) — 국소 근육 활성화, 분절 안정화"
-        focus = "코어 안정화, 낮은 강도의 등척성 운동"
-    elif week <= 8:
-        phase = "Step 3: 근신경 활성화 (Neuromuscular) — 기능적 패턴 훈련"
-        focus = "복합 동작 패턴, 중등도 저항 운동"
-    elif week <= 16:
-        phase = "Step 4: 근력 강화 (Strength) — 점진적 과부하"
-        focus = "저항 운동 점진적 증가, 기능적 훈련"
-    elif week <= 20:
-        phase = "Step 5: 기능적 통합 (Functional Integration)"
-        focus = "스포츠 특이적 동작, 민첩성, 협응력"
+    vas = patient_info.get("vas", 5)
+    goal_type = patient_info.get("goal_type", "근골격 재활")
+    is_diet = "다이어트" in goal_type
+    is_low_pain = vas <= 3  # 통증이 낮으면 더 빠르게 진행
+
+    # VAS와 목적에 따라 주차별 단계 동적 결정
+    if is_diet:
+        # 다이어트: 처음부터 운동 강도 있게
+        if week <= 2:
+            phase = "Phase 1: 기초 체력 다지기"
+            focus = "유산소 운동 + 기초 근력 운동. 걷기, 가벼운 스쿼트, 코어 운동. 심박수 최대 60~70% 유지"
+        elif week <= 6:
+            phase = "Phase 2: 지방 연소 강화"
+            focus = "인터벌 트레이닝, 복합 근력 운동, 유산소+근력 병행. 심박수 70~80%"
+        elif week <= 12:
+            phase = "Phase 3: 대사 활성화"
+            focus = "고강도 인터벌(HIIT), 서킷 트레이닝, 식단 병행 강조"
+        elif week <= 20:
+            phase = "Phase 4: 체형 개선"
+            focus = "분할 근력 운동, 유산소 유지, 근육량 증가"
+        else:
+            phase = "Phase 5: 유지 및 습관화"
+            focus = "운동 루틴 정착, 식단 관리, 자가 모니터링"
+    elif is_low_pain:
+        # 통증 낮음: 빠르게 강도 올림
+        if week <= 1:
+            phase = "Phase 1: 활성화 (Activation)"
+            focus = "근육 활성화, 가동성, 가벼운 저항 운동 시작. 스트레칭 최소화"
+        elif week <= 3:
+            phase = "Phase 2: 안정성 + 근력 시작"
+            focus = "코어 안정화, 중등도 저항 운동, 기능적 패턴"
+        elif week <= 8:
+            phase = "Phase 3: 근력 강화"
+            focus = "점진적 과부하, 복합 운동, 스포츠 동작 패턴"
+        elif week <= 16:
+            phase = "Phase 4: 퍼포먼스 향상"
+            focus = "고강도 트레이닝, 파워 운동, 민첩성"
+        elif week <= 20:
+            phase = "Phase 5: 기능적 통합"
+            focus = "스포츠 특이적 동작, 복귀 준비"
+        else:
+            phase = "Phase 6: 복귀 및 유지"
+            focus = "스포츠/직업 복귀, 자가 관리 프로그램"
     else:
-        phase = "Step 6: 복귀 및 유지 (Return & Maintenance)"
-        focus = "스포츠/직업 복귀 준비, 자가 관리 프로그램"
+        # 일반 재활 (VAS 4 이상)
+        if week <= 2:
+            phase = "Phase 1: 통증 조절 + 가동성"
+            focus = "통증 감소 우선. 부드러운 관절 가동운동, 스트레칭, 열/냉 적용"
+        elif week <= 4:
+            phase = "Phase 2: 안정화 (Stability)"
+            focus = "국소 근육 활성화, 등척성 운동, 코어 안정화"
+        elif week <= 8:
+            phase = "Phase 3: 근신경 활성화"
+            focus = "복합 동작 패턴, 중등도 저항 운동, 균형 훈련"
+        elif week <= 16:
+            phase = "Phase 4: 근력 강화"
+            focus = "점진적 과부하, 기능적 훈련, 스포츠 동작"
+        elif week <= 20:
+            phase = "Phase 5: 기능적 통합"
+            focus = "스포츠 특이적 동작, 민첩성, 협응력"
+        else:
+            phase = "Phase 6: 복귀 및 유지"
+            focus = "스포츠/직업 복귀 준비, 자가 관리 프로그램"
 
     results_str = "\n".join(f"- {tid}: {'양성(+)' if r=='양성(+)' else '음성(-)'}" for tid,r in test_results.items())
     is_diet = patient_info.get("goal_type","") == "다이어트"
@@ -1419,19 +1463,17 @@ with tab2:
                         prep_text = prep.group(1).strip().replace("\n", " ")
                         st.markdown(f"📍 **준비:** {prep_text}")
 
-                    # 검사 순서 추출 → 이모지로 가독성 향상 (각 줄 분리)
+                    # 검사 순서 추출 → 이모지로 가독성 향상 (각 줄 완전 분리)
                     steps_raw = re.findall(r"(\d+)\.\s+(.+?)(?=\n\d+\.|\n\*\*|\Z)", raw, re.DOTALL)
                     if steps_raw:
                         step_emojis = ["1️⃣","2️⃣","3️⃣","4️⃣","5️⃣","6️⃣","7️⃣","8️⃣"]
-                        steps_lines = []
+                        st.markdown('<div style="margin:8px 0">', unsafe_allow_html=True)
                         for n, s in steps_raw:
                             idx = int(n) - 1
                             emoji = step_emojis[idx] if idx < len(step_emojis) else f"{n}."
                             step_text = s.strip().replace("\n", " ")
-                            steps_lines.append(f"{emoji} {step_text}")
-                        # 각 스텝을 별도 줄로 표시
-                        for line in steps_lines:
-                            st.markdown(line)
+                            st.markdown(f'<div style="padding:3px 0;font-size:0.88rem">{emoji} {step_text}</div>', unsafe_allow_html=True)
+                        st.markdown('</div>', unsafe_allow_html=True)
 
                     # 양성 판정
                     positive = re.search(r"\*\*양성 판정:\*\*(.+?)(?:\n\*\*|\Z)", raw, re.DOTALL)
@@ -1448,13 +1490,25 @@ with tab2:
                     st.markdown(f"[▶️ 참고 영상]({test['video']})")
 
                 with col_r:
-                    prev = st.session_state.test_results.get(test["id"], "음성(-)")
-                    result = st.radio("결과", ["양성(+)","음성(-)"],
-                                     index=0 if prev=="양성(+)" else 1,
-                                     key=f"r_{test['id']}", label_visibility="collapsed")
-                    results[test["id"]] = result
-                    badge = '<span class="pos">양성 (+)</span>' if result=="양성(+)" else '<span class="neg">음성 (-)</span>'
-                    st.markdown(badge, unsafe_allow_html=True)
+                    st.markdown("**결과 입력**")
+                    # Rt / Lt 각각 입력
+                    prev_rt = st.session_state.test_results.get(f"{test['id']}_Rt", "음성(-)")
+                    prev_lt = st.session_state.test_results.get(f"{test['id']}_Lt", "음성(-)")
+
+                    rt = st.radio("우측 (Rt)", ["양성(+)","음성(-)"],
+                                  index=0 if prev_rt=="양성(+)" else 1,
+                                  key=f"rt_{test['id']}", horizontal=True)
+                    lt = st.radio("좌측 (Lt)", ["양성(+)","음성(-)"],
+                                  index=0 if prev_lt=="양성(+)" else 1,
+                                  key=f"lt_{test['id']}", horizontal=True)
+
+                    results[f"{test['id']}_Rt"] = rt
+                    results[f"{test['id']}_Lt"] = lt
+
+                    # 배지 표시
+                    rt_badge = '<span class="pos">Rt 양성</span>' if rt=="양성(+)" else '<span class="neg">Rt 음성</span>'
+                    lt_badge = '<span class="pos">Lt 양성</span>' if lt=="양성(+)" else '<span class="neg">Lt 음성</span>'
+                    st.markdown(f"{rt_badge} {lt_badge}", unsafe_allow_html=True)
 
         st.markdown("---")
         if st.button("✅ 결과 저장 후 처방으로 이동", use_container_width=True):
