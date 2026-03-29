@@ -839,19 +839,141 @@ def init_session():
         "pain_types": [],
         "details": "",
         "metabolic": [],
-        "exercise_records": {},   # {week: {ex_name: {done,sets,notes}}}
-        "saved_records": {},      # {week: {ex_name: {done,sets,notes}}} — 저장된 기록
-        "custom_exercises": {},   # {week: [{name,sets,notes}]}
-        "saved_custom": {},       # {week: [{name,sets,notes}]} — 저장된 추가운동
+        "exercise_records": {},
+        "saved_records": {},
+        "custom_exercises": {},
+        "saved_custom": {},
         "selected_week": 1,
-        "members": {},            # {name: {info dict}}
+        "selected_phase": 1,
+        "members": {},
         "loaded_member": None,
+        # 수술 이력
+        "surgery_name": "",
+        "surgery_custom": "",
+        "surgery_weeks_ago": 0,
+        "surgery_side": "없음",
     }
     for k, v in defaults.items():
         if k not in st.session_state:
             st.session_state[k] = v
 
 init_session()
+
+# ── 수술 프로토콜 DB ──────────────────────────────────────────────────────────
+SURGERY_PROTOCOLS = {
+    "ACL 재건술": {
+        "weeks": {
+            (0,2):   "Phase 1 (0~2주): 부종/통증 조절, 완전 신전 회복, 체중 부하 시작\n금기: 완전 굴곡, 쪼그려 앉기, 달리기\n운동: 발목 펌핑, 쿼드셋, SLR, 완전 신전 스트레칭, 목발 보행",
+            (3,6):   "Phase 2 (3~6주): 완전 굴곡 회복, 근력 강화 시작, 정상 보행\n금기: 달리기, 점프, 피벗\n운동: 자전거, 레그프레스(0-60°), 수중 운동, 클로즈드체인 운동",
+            (7,12):  "Phase 3 (7~12주): 근력 강화, 고유수용감각 훈련\n금기: 달리기(10주까지), 피벗\n운동: 스쿼트, 런지, 레그프레스(0-90°), 밸런스 훈련, 조깅 시작",
+            (13,20): "Phase 4 (13~20주): 스포츠 특이 훈련\n운동: 달리기, 방향전환, 점프 착지, 민첩성 드릴",
+            (21,999):"Phase 5 (21주+): 복귀 준비\n운동: 스포츠 복귀 훈련, 피벗, 경기 시뮬레이션",
+        }
+    },
+    "PCL 재건술": {
+        "weeks": {
+            (0,4):   "Phase 1 (0~4주): 후방 처짐 방지, 신전 유지\n금기: 능동 무릎 굴곡, 쪼그려 앉기\n운동: 장하지 보조기, SLR, 쿼드셋, 발목 운동",
+            (5,12):  "Phase 2 (5~12주): 가동범위 회복, 근력 강화\n운동: 자전거, 레그프레스, 스텝업",
+            (13,24): "Phase 3 (13~24주): 스포츠 복귀 준비\n운동: 달리기, 방향전환, 스포츠 드릴",
+        }
+    },
+    "SLAP 수술": {
+        "weeks": {
+            (0,4):   "Phase 1 (0~4주): 슬링 착용, 수동적 ROM만\n금기: 능동 외전, 외회전, 팔 뒤로 당기기\n운동: 진자 운동, 손목/팔꿈치 ROM",
+            (5,8):   "Phase 2 (5~8주): 능동보조 ROM, 견갑 안정화\n운동: 도르래 운동, 견갑 후인·하강",
+            (9,12):  "Phase 3 (9~12주): 근력 강화\n운동: 밴드 회전근 강화, 사이드라잉 ER",
+            (13,20): "Phase 4 (13~20주): 기능적 강화\n운동: 오버헤드 운동, 투구 동작 패턴",
+            (21,999):"Phase 5 (21주+): 스포츠 복귀\n운동: 투구 프로그램, 풀타임 스포츠 활동",
+        }
+    },
+    "회전근개 봉합술": {
+        "weeks": {
+            (0,6):   "Phase 1 (0~6주): 슬링, 수동 ROM만\n금기: 능동 거상, 외전\n운동: 진자, 수동 굴곡·외회전",
+            (7,12):  "Phase 2 (7~12주): 능동보조 ROM, 견갑 안정화\n운동: 도르래, 테이블 슬라이딩",
+            (13,20): "Phase 3 (13~20주): 근력 강화\n운동: 밴드 운동, Empty can, ER/IR 강화",
+            (21,999):"Phase 4 (21주+): 기능적 복귀\n운동: 오버헤드 활동, 스포츠 복귀",
+        }
+    },
+    "반월연골판 봉합술": {
+        "weeks": {
+            (0,4):   "Phase 1 (0~4주): 체중 부하 제한\n금기: 완전 굴곡, 쪼그려 앉기\n운동: 쿼드셋, SLR, 발목 펌핑, 부분 체중 부하",
+            (5,8):   "Phase 2 (5~8주): 점진적 굴곡 증가\n운동: 자전거(안장 높게), 수중 운동",
+            (9,16):  "Phase 3 (9~16주): 근력 강화\n운동: 스쿼트(90° 이내), 런지, 레그프레스",
+            (17,999):"Phase 4 (17주+): 복귀\n운동: 달리기, 방향전환, 스포츠 활동",
+        }
+    },
+    "반월연골판 절제술": {
+        "weeks": {
+            (0,2):   "Phase 1 (0~2주): 부종 조절\n운동: 쿼드셋, SLR, 스트레칭",
+            (3,6):   "Phase 2 (3~6주): 빠른 근력 강화\n운동: 스쿼트, 런지, 자전거",
+            (7,999): "Phase 3 (7주+): 스포츠 복귀\n운동: 달리기, 방향전환, 스포츠 활동",
+        }
+    },
+    "TKR (슬관절 전치환술)": {
+        "weeks": {
+            (0,2):   "Phase 1 (0~2주): 초기 회복\n금기: 고굴곡, 쪼그려 앉기\n운동: 발목 펌핑, 쿼드셋, 보조 보행",
+            (3,6):   "Phase 2 (3~6주): 가동범위·근력\n운동: 자전거, 스텝업, 앉았다 일어서기",
+            (7,12):  "Phase 3 (7~12주): 기능적 강화\n운동: 계단, 보행 정상화, 균형 훈련",
+            (13,999):"Phase 4 (13주+): 일상 복귀\n운동: 수영, 자전거, 걷기, ADL 복귀",
+        }
+    },
+    "THR (고관절 전치환술)": {
+        "weeks": {
+            (0,6):   "Phase 1 (0~6주): 탈구 예방 (후방 접근법)\n금기: 고관절 굴곡 90° 초과, 내전, 내회전\n운동: 발목 펌핑, 등척성 운동, 보조 보행",
+            (7,12):  "Phase 2 (7~12주): 근력 강화\n운동: 사이드스텝, 스쿼트(90° 이내), 자전거",
+            (13,999):"Phase 3 (13주+): 기능 복귀\n운동: 계단, 경사 보행, 수영",
+        }
+    },
+    "척추 유합술": {
+        "weeks": {
+            (0,6):   "Phase 1 (0~6주): 보호기\n금기: 굴곡, 회전, 중량 들기\n운동: 보행, 호흡 운동, 발목·하지 운동",
+            (7,12):  "Phase 2 (7~12주): 안정화\n운동: 복횡근 활성화, 브릿지, 버드독(제한적)",
+            (13,24): "Phase 3 (13~24주): 강화\n운동: 코어 강화, 보행 증가, 가벼운 스쿼트",
+            (25,999):"Phase 4 (25주+): 복귀\n운동: 점진적 일상 복귀, 직업 재활",
+        }
+    },
+    "디스크 수술 (PLDD/MED)": {
+        "weeks": {
+            (0,2):   "Phase 1 (0~2주): 급성기\n금기: 장시간 앉기, 굴곡\n운동: 보행, 맥켄지 신전",
+            (3,6):   "Phase 2 (3~6주): 안정화\n운동: 코어 안정화, 브릿지, 걷기 증가",
+            (7,12):  "Phase 3 (7~12주): 강화\n운동: 스쿼트, 데드리프트(경량), 수영",
+            (13,999):"Phase 4 (13주+): 복귀\n운동: 직업 복귀, 스포츠 복귀",
+        }
+    },
+    "Elbow MCL 재건술": {
+        "weeks": {
+            (0,3):   "Phase 1 (0~3주): 보호기\n금기: 외반 스트레스, 투구\n운동: 손목·손가락 ROM, 어깨 등척성",
+            (4,8):   "Phase 2 (4~8주): 가동범위 회복\n운동: 팔꿈치 ROM, 전완 회내외",
+            (9,16):  "Phase 3 (9~16주): 근력 강화\n운동: 저항 운동, 쥐기 강화",
+            (17,999):"Phase 4 (17주+): 투구 복귀\n운동: 간헐적 투구 프로그램",
+        }
+    },
+    "OCD (박리성 골연골염) 수술": {
+        "weeks": {
+            (0,6):   "Phase 1 (0~6주): 비체중 부하\n금기: 체중 부하\n운동: 수동 ROM, 등척성",
+            (7,16):  "Phase 2 (7~16주): 점진적 체중 부하\n운동: 자전거, 수중, 스텝업",
+            (17,999):"Phase 3 (17주+): 스포츠 복귀\n운동: 달리기, 방향전환",
+        }
+    },
+    "수관절 수술 (TFCC/인대)": {
+        "weeks": {
+            (0,4):   "Phase 1 (0~4주): 부목 고정\n금기: 손목 모든 운동\n운동: 손가락 ROM, 팔꿈치·어깨 유지",
+            (5,8):   "Phase 2 (5~8주): ROM 회복\n운동: 손목 굴곡·신전, 전완 회내외",
+            (9,12):  "Phase 3 (9~12주): 근력 강화\n운동: 쥐기 강화, 저항 운동",
+            (13,999):"Phase 4 (13주+): 기능 복귀\n운동: 직업·스포츠 복귀",
+        }
+    },
+}
+
+def get_surgery_protocol(surgery_name, weeks_ago):
+    """수술 후 경과 주수에 따른 프로토콜 반환"""
+    protocol = SURGERY_PROTOCOLS.get(surgery_name)
+    if not protocol:
+        return None
+    for (w_start, w_end), text in protocol["weeks"].items():
+        if w_start <= weeks_ago <= w_end:
+            return text
+    return None
 
 # ── Helpers ───────────────────────────────────────────────────────────────────
 def get_client():
@@ -1125,10 +1247,30 @@ def generate_week_program(week, patient_info, test_results, body_part, intensity
             focus = "스포츠/직업 복귀 준비, 자가 관리 프로그램"
 
     results_str = "\n".join(f"- {tid}: {'양성(+)' if r=='양성(+)' else '음성(-)'}" for tid,r in test_results.items())
-    is_diet = patient_info.get("goal_type","") == "다이어트"
+    is_diet = "다이어트" in patient_info.get("goal_type","")
     diet_add = "\n식단 권장사항도 간략히 포함해주세요." if is_diet else ""
 
-    prompt = f"""You are an exercise prescription expert. Create a week {week} exercise program for this patient.
+    # 수술 프로토콜 적용
+    surgery_name = patient_info.get("surgery_name","")
+    surgery_weeks = patient_info.get("surgery_weeks_ago", 0)
+    surgery_side = patient_info.get("surgery_side","")
+    protocol_text = get_surgery_protocol(surgery_name, surgery_weeks) if surgery_name else None
+
+    if protocol_text:
+        surgery_section = f"""
+⚠️ 수술 재활 환자 — 프로토콜 엄수 필수:
+수술명: {surgery_name} ({surgery_side}) / 수술 후 {surgery_weeks}주
+현재 적용 프로토콜:
+{protocol_text}
+
+중요: 위 프로토콜의 금기사항을 절대 위반하지 마세요.
+운동 강도와 종류는 반드시 위 프로토콜 범위 안에서만 선택하세요."""
+    elif surgery_name:
+        surgery_section = f"\n수술 이력: {surgery_name} ({surgery_side}) / 수술 후 {surgery_weeks}주 — 보수적으로 처방하세요."
+    else:
+        surgery_section = ""
+
+    prompt = f"""You are an expert sports medicine rehabilitation specialist. Create a week {week} exercise program.
 
 Patient: age {patient_info['age']}, BMI {patient_info['bmi']}, VAS {patient_info['vas']}/10
 Area: {body_part}, Intensity: {intensity_label}
@@ -1136,6 +1278,7 @@ Conditions: {', '.join(patient_info.get('metabolic',[])) or 'none'}
 Occupation: {patient_info.get('occupation','')}
 Tests: {results_str}
 Phase: {phase} / Focus: {focus}
+{surgery_section}
 {diet_add}
 
 Respond ONLY with valid JSON, no extra text, no markdown:
@@ -1409,6 +1552,51 @@ with tab1:
                            label_visibility="collapsed")
     st.session_state.details = details
 
+    # ── 수술 이력 (선택사항) ──────────────────────────────────────────────────
+    with st.expander("🔪 수술 이력 입력 (선택사항 — 수술 재활인 경우)", expanded=False):
+        st.caption("수술 재활 환자인 경우 입력하면 수술 프로토콜 기반 운동이 처방돼요.")
+
+        surgery_list = ["없음/해당없음"] + list(SURGERY_PROTOCOLS.keys()) + ["기타 (직접 입력)"]
+        surgery_name = st.selectbox("수술명", surgery_list,
+                                    index=surgery_list.index(st.session_state.get("surgery_name","없음/해당없음")) if st.session_state.get("surgery_name","없음/해당없음") in surgery_list else 0,
+                                    label_visibility="collapsed")
+        st.session_state.surgery_name = surgery_name
+
+        surgery_custom = ""
+        if surgery_name == "기타 (직접 입력)":
+            surgery_custom = st.text_input("수술명 직접 입력", value=st.session_state.get("surgery_custom",""),
+                                           placeholder="예: 발목 인대 봉합술, 오십견 수술 등",
+                                           label_visibility="collapsed")
+            st.caption("수술명 직접 입력")
+            st.session_state.surgery_custom = surgery_custom
+
+        if surgery_name != "없음/해당없음":
+            col_s1, col_s2 = st.columns(2)
+            with col_s1:
+                surgery_weeks = st.number_input("수술 후 경과 (주)", min_value=0, max_value=200,
+                                                value=st.session_state.get("surgery_weeks_ago",0),
+                                                step=1, label_visibility="collapsed")
+                st.caption("수술 후 몇 주 경과했나요?")
+                st.session_state.surgery_weeks_ago = surgery_weeks
+            with col_s2:
+                surgery_side = st.selectbox("수술 측", ["없음","우측 (Rt)","좌측 (Lt)","양측"],
+                                            index=["없음","우측 (Rt)","좌측 (Lt)","양측"].index(st.session_state.get("surgery_side","없음")),
+                                            label_visibility="collapsed")
+                st.caption("수술 측")
+                st.session_state.surgery_side = surgery_side
+
+            # 해당 주차 프로토콜 미리보기
+            protocol_text = get_surgery_protocol(surgery_name, surgery_weeks)
+            if protocol_text:
+                st.markdown(f'<div style="background:#fef9c3;border-left:4px solid #f59e0b;border-radius:8px;padding:10px 14px;font-size:0.82rem;margin-top:8px"><b>📋 현재 적용 프로토콜:</b><br>{protocol_text.replace(chr(10),"<br>")}</div>', unsafe_allow_html=True)
+            elif surgery_name == "기타 (직접 입력)":
+                st.info("기타 수술은 AI가 일반 재활 원칙 기반으로 처방합니다.")
+
+    # 수술 정보 통합
+    final_surgery_name = surgery_custom if surgery_name == "기타 (직접 입력)" else (surgery_name if surgery_name != "없음/해당없음" else "")
+    final_surgery_weeks = st.session_state.get("surgery_weeks_ago", 0) if final_surgery_name else 0
+    final_surgery_side = st.session_state.get("surgery_side", "없음") if final_surgery_name else ""
+
     intensity_label, intensity_icon = get_intensity(patient_age, vas, bmi)
     st.info(f"💪 자동 산출 운동 강도: {intensity_icon} **{intensity_label}** (나이 {patient_age}세 · VAS {vas} · BMI {bmi})")
 
@@ -1647,8 +1835,19 @@ with tab3:
             "details": st.session_state.details,
             "metabolic": metabolic,
             "occupation": occ_detail or occ,
-            "goal_type": goal_type,
+            "goal_type": ", ".join(goal_types),
+            "surgery_name": st.session_state.get("surgery_name","") if st.session_state.get("surgery_name","") not in ["없음/해당없음",""] else "",
+            "surgery_weeks_ago": st.session_state.get("surgery_weeks_ago", 0),
+            "surgery_side": st.session_state.get("surgery_side",""),
         }
+
+        # 수술 재활인 경우 알림
+        if patient_info_dict.get("surgery_name"):
+            sn = patient_info_dict["surgery_name"]
+            sw = patient_info_dict["surgery_weeks_ago"]
+            protocol = get_surgery_protocol(sn, sw)
+            if protocol:
+                st.markdown(f'<div style="background:#fef9c3;border-left:4px solid #f59e0b;border-radius:10px;padding:12px 16px;margin-bottom:12px"><b>🔪 수술 재활 모드:</b> {sn} / 수술 후 {sw}주<br><small>{protocol.split(chr(10))[0]}</small></div>', unsafe_allow_html=True)
 
         # 생성 버튼
         btn_col1, btn_col2 = st.columns([3,1])
