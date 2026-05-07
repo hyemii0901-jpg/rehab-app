@@ -36,7 +36,11 @@ def get_gsheet():
         client = gspread.authorize(creds)
         sh = client.open_by_key(SPREADSHEET_ID)
         return sh
+    except KeyError:
+        st.error("❌ Secrets에 gcp_service_account 설정이 없습니다")
+        return None
     except Exception as e:
+        st.error(f"❌ 구글 시트 오류: {str(e)[:200]}")
         return None
 
 def save_member_to_sheet(member_data):
